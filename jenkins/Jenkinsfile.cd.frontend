@@ -5,10 +5,11 @@ pipeline {
   }
   environment {
     REGISTRY = "docker.io/sanidhyasaga/shopnow"
-    KUBECONFIG_FILE = 'ca2bd830-9811-4054-a5e4-ae73588d3d89' // your actual kubeconfig credential ID
-    RELEASE_NAME = 'shopnow-frontend'
-    NAMESPACE = 'shopnow-demo'
-    CHART_PATH = 'charts/frontend'
+    IMAGE_NAME = "${REGISTRY}-frontend"
+    KUBECONFIG_FILE = "kubeconfig-credential" // your actual kubeconfig credential ID
+    RELEASE_NAME = "shopnow-frontend"
+    NAMESPACE = "shopnow-demo"
+    CHART_PATH = "charts/frontend"
   }
   stages {
     stage('Checkout') {
@@ -17,20 +18,37 @@ pipeline {
       }
     }
 
-    stage('Deploy (Helm)') {
+    stage('Build Docker Image') {
+      steps {
+        sh """
+          docker build -t ${IMAGE_NAME}:${params.IMAGE_TAG} -f Dockerfile.frontend .
+        """
+      }
+    }
+
+    stage('Push Docker Image') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-credential', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+          sh """
+            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+            docker push ${IMAGE_NAME}:${params.IMAGE_TAG}
+          """
+        }
+      }
+    }
+
+    stage('Deploy to Kubernetes') {
       steps {
         withCredentials([file(credentialsId: env.KUBECONFIG_FILE, variable: 'KUBECONFIG')]) {
-          script {
-            sh(script: """
-              export KUBECONFIG=\$KUBECONFIG
-              helm upgrade --install ${env.RELEASE_NAME} ${env.CHART_PATH} \\
-                --namespace ${env.NAMESPACE} --create-namespace \\
-                --set image.repository=${env.REGISTRY}-frontend \\
-                --set image.tag=${params.IMAGE_TAG} \\
-                --wait --timeout 5m
-              kubectl rollout status deployment/${env.RELEASE_NAME}-frontend -n ${env.NAMESPACE} --timeout=3m
-            """, shell: '/bin/bash')
-          }
+          sh """
+            export KUBECONFIG=\$KUBECONFIG
+            helm upgrade --install ${RELEASE_NAME} ${CHART_PATH} \\
+              --namespace ${NAMESPACE} --create-namespace \\
+              --set image.repository=${IMAGE_NAME} \\
+              --set image.tag=${params.IMAGE_TAG} \\
+              --wait --timeout 5m
+            kubectl rollout status deployment/${RELEASE_NAME}-frontend -n ${NAMESPACE} --timeout=3m
+          """
         }
       }
     }
