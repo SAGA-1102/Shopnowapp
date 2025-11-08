@@ -23,9 +23,9 @@ pipeline {
         dir('frontend') {
           withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
             sh '''
-              echo "$DOCKER_PASS" |docker login -u "$DOCKER_USER" --password-stdin docker.io
+              echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
               export DOCKER_BUILDKIT=0
-              docker build -t docker.io/sanidhyasaga/shopnow-frontend:${IMAGE_TAG} .
+              docker build -t docker.io/sanidhyasaga/shopnow-frontend: .
               docker push docker.io/sanidhyasaga/shopnow-frontend:${IMAGE_TAG}              
             '''
           }
