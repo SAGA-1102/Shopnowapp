@@ -4,29 +4,35 @@ pipeline {
     string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Image tag to deploy')
   }
   environment {
-    REGISTRY = "your.registry.example.com/shopnow"
-    KUBECONFIG_FILE = 'kubeconfig-credential' // Jenkins file credential containing kubeconfig
+    REGISTRY = "docker.io/sanidhyasaga/shopnow"
+    KUBECONFIG_FILE = 'ca2bd830-9811-4054-a5e4-ae73588d3d89' // your actual kubeconfig credential ID
     RELEASE_NAME = 'shopnow-frontend'
     NAMESPACE = 'shopnow-demo'
     CHART_PATH = 'charts/frontend'
   }
   stages {
-    stage('Checkout') { steps { checkout scm } }
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
     stage('Deploy (Helm)') {
       steps {
-        withCredentials([file(credentialsId: KUBECONFIG_FILE, variable: 'KUBECONFIG')]) {
-          sh '''
-            export KUBECONFIG=$KUBECONFIG
-            helm upgrade --install ${RELEASE_NAME} ${CHART_PATH} \
-              --namespace ${NAMESPACE} --create-namespace \
-              --set image.repository=${REGISTRY}-frontend \
-              --set image.tag=${IMAGE_TAG} \
-              --wait --timeout 5m
-            kubectl rollout status deployment/${RELEASE_NAME}-frontend -n ${NAMESPACE} --timeout=3m
-          '''
+        withCredentials([file(credentialsId: env.KUBECONFIG_FILE, variable: 'KUBECONFIG')]) {
+          script {
+            sh(script: """
+              export KUBECONFIG=\$KUBECONFIG
+              helm upgrade --install ${env.RELEASE_NAME} ${env.CHART_PATH} \\
+                --namespace ${env.NAMESPACE} --create-namespace \\
+                --set image.repository=${env.REGISTRY}-frontend \\
+                --set image.tag=${params.IMAGE_TAG} \\
+                --wait --timeout 5m
+              kubectl rollout status deployment/${env.RELEASE_NAME}-frontend -n ${env.NAMESPACE} --timeout=3m
+            """, shell: '/bin/bash')
+          }
         }
       }
     }
   }
 }
-
