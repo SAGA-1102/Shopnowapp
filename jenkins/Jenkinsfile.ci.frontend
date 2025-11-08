@@ -12,8 +12,8 @@ pipeline {
     stage('Set Image Tag') {
   steps {
     script {
-      env.IMAGE_TAG = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-      echo "Image tag: ${env.IMAGE_TAG}"
+       env.IMAGE_TAG = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+       echo "Image tag: ${env.IMAGE_TAG}"
 }
     }
   }
@@ -22,12 +22,12 @@ pipeline {
       steps {
         dir('frontend') {
           withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-            sh(script '''
-              echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
+            sh(script: """
+              echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin docker.io
               export DOCKER_BUILDKIT=0
               docker build -t docker.io/sanidhyasaga/shopnow-frontend:${env.IMAGE_TAG} .
-              docker push docker.io/sanidhyasaga/shopnow-frontend:${env.IMAGE_TAG}              
-            ''',shell: '/bin/bash')
+              docker push docker.io/sanidhyasaga/shopnow-frontend:${env.IMAGE_TAG}
+              """, shell: '/bin/bash')
           }
         }
       }
