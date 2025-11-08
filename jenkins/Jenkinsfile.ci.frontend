@@ -2,7 +2,7 @@ pipeline {
   agent any
   environment {
     REGISTRY = "docker.io/sanidhyasaga/shopnow"
-    DOCKER_CREDENTIALS = 'docker-reg-cred'    // Jenkins username/password credential id
+    DOCKER_CREDENTIALS = 'docker-reg-creds1'    // Jenkins username/password credential id
     IMAGE_TAG = ''
   }
   stages {
