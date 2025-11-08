@@ -1,32 +1,53 @@
 pipeline {
   agent any
   environment {
-    REGISTRY = "your.registry.example.com/shopnow"
-    DOCKER_CREDENTIALS = 'docker-reg-cred'
-    IMAGE_TAG = ''
+    REGISTRY = "docker.io/sanidhyasaga/shopnow"
+    DOCKER_CREDENTIALS = 'docker-reg-creds1'
   }
   stages {
-    stage('Checkout') { steps { checkout scm } }
-    stage('Set Image Tag') { steps { script { IMAGE_TAG = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim() } } }
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Set Image Tag') {
+      steps {
+        script {
+          env.IMAGE_TAG = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+          echo "IMAGE_TAG=${env.IMAGE_TAG}"
+        }
+      }
+    }
+
     stage('Build & Push') {
       steps {
         dir('admin') {
-          withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-            sh '''
-              echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin your.registry.example.com
-              docker build -t ${REGISTRY}-admin:${IMAGE_TAG} .
-              docker push ${REGISTRY}-admin:${IMAGE_TAG}
-            '''
+          withCredentials([usernamePassword(credentialsId: env.DOCKER_CREDENTIALS, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+            script {
+              sh(script: """
+                echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin docker.io
+                export DOCKER_BUILDKIT=0
+                docker build -t ${env.REGISTRY}-admin:${env.IMAGE_TAG} .
+                docker push ${env.REGISTRY}-admin:${env.IMAGE_TAG}
+              """, shell: '/bin/bash')
+            }
           }
         }
       }
     }
+
     stage('Publish Tag') {
       steps {
-        writeFile file: 'image-tag.txt', text: "${IMAGE_TAG}"
+        writeFile file: 'image-tag.txt', text: "${env.IMAGE_TAG}"
         archiveArtifacts artifacts: 'image-tag.txt', fingerprint: true
       }
     }
   }
-  post { always { cleanWs() } }
+
+  post {
+    always {
+      cleanWs()
+    }
+  }
 }
