@@ -23,7 +23,7 @@ pipeline {
         dir('frontend') {
           withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
             sh '''
-              echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin your.registry.example.com
+              echo "$DOCKER_PASS" |docker login -u "$DOCKER_USER" --password-stdin docker.io
               docker build -t ${REGISTRY}-frontend:${IMAGE_TAG} .
               docker push ${REGISTRY}-frontend:${IMAGE_TAG}
             '''
