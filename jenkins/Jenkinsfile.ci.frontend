@@ -12,7 +12,6 @@ pipeline {
     stage('Set Image Tag') {
   steps {
     script {
-      def GIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
       env.IMAGE_TAG = GIT_SHORT
       echo "Image tag: ${env.IMAGE_TAG}"
     }
